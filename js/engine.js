@@ -15,10 +15,7 @@
  */
 
 var Engine = (function(global) {
-    /* Predefine the variables we'll be using within this scope,
-     * create the canvas element, grab the 2D context for that canvas
-     * set the canvas elements height/width and add it to the DOM.
-     */
+
     var doc = global.document,
         win = global.window,
         canvas = doc.createElement('canvas'),
@@ -26,23 +23,28 @@ var Engine = (function(global) {
         offsetY = canvas.offsetTop,
         ctx = canvas.getContext('2d'),
         lastTime;
-
     canvas.width = 505;
     canvas.height = 606;
     doc.body.appendChild(canvas);
 
-	canvas.addEventListener('click', function(event) {
-				var x = event.pageX - offsetX,
-					y = event.pageY;
-			   for (var i = 0; i < rects.length; i++) {
-					if (rects[i].isPointInside(x, y)) {
-						player.score = 0;
-						player.x = 101*2;
-						player.y = 83*5;
-						};
-				};
-			},
-		false);
+    selector = new Selector();
+    var doRender = renderStarter;
+        doUpdate = selector.update;
+
+    canvas.addEventListener('click', function(event) {
+        var x = event.pageX - offsetX,
+            y = event.pageY;
+        for (var i = 0; i < rects.length; i++) {
+            if (rects[i].isPointInside(x, y)) {
+                player.score = 0;
+                player.lifes = 3;
+                player.x = 101*2;
+                player.y = 83*5;
+                };
+        };
+    },
+    false
+    );
 
     /* This function serves as the kickoff point for the game loop itself
      * and handles properly calling the update and render methods.
@@ -57,14 +59,12 @@ var Engine = (function(global) {
         var now = Date.now(),
             dt = (now - lastTime) / 1000.0;
 
-        
-        /* Call our update/render functions, pass along the time delta to
-         * our update function since it may be used for smooth animation.
+        /* Call  update/render functions, pass along the time delta to
+         * update function to ensure smooth animation.
          */
-        update(dt);
-        render();
-
-        /* Set our lastTime variable which is used to determine the time delta
+        doRender();
+        doUpdate(dt);
+       /* lastTime variable which is used to determine the time delta
          * for the next time this function is called.
          */
         lastTime = now;
@@ -82,7 +82,12 @@ var Engine = (function(global) {
     function init() {
         lastTime = Date.now();
         main();
-}
+    }
+
+    changeSlide = function() {
+            doRender = renderMain;
+            doUpdate = update;
+        }
 
     /* This function is called by main (our game loop) and itself calls all
      * of the functions which may need to update entity's data. Based on how
@@ -94,7 +99,7 @@ var Engine = (function(global) {
      * on the entities themselves within your app.js file).
      */
     function update(dt) {
-        if(player.score < 50 && player.score > -20) {
+        if(player.score < 50 && player.lifes >= 0) {
             updateEntities(dt);
             checkCollisions();
        };
@@ -120,18 +125,54 @@ var Engine = (function(global) {
                      && enemy.y == player.y) {
                 player.y = 83*5;
                 player.x = 101*2;
-                player.score -= 3;
+                if(player.score > 2) {
+                    player.score -= 3;
+                } else {
+                    player.score <= 2;
+                    player.lifes --
+                    player.score = 0;
+                }
             };
         });
     }
 
     function renderText () {
         if (player.score >= 50) {
-			rectWin.draw();
-        } else if (player.score <= -20) {
-			rectLose.draw();
+            rectWin.draw();
+        } else if (player.lifes < 0) {
+            rectLose.draw();
        }
     }
+
+    /* rendering first screen where you can choose the character */
+
+    function renderStarter() {
+
+        ctx.rect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.fill();
+
+        var myImages = [
+                'images/char-cat-girl.png',
+                'images/char-horn-girl.png',
+                'images/char-boy.png',
+                'images/char-pink-girl.png',
+                'images/char-princess-girl.png'
+            ],
+            numRows = 1,
+            numCols = 5;
+
+        ctx.font = "30px Consolas";
+        ctx.fillStyle = "black";
+        ctx.fillText('Select your character:', 50, 83*2.5);
+
+        for (var col = 0; col < numCols; col++) {
+            ctx.drawImage(Resources.get(myImages[col]), col * 101, 83*3);
+        }
+
+        selector.render();
+    }
+    
 
     /* This function initially draws the "game level", it will then call
      * the renderEntities function. Remember, this function is called every
@@ -139,7 +180,8 @@ var Engine = (function(global) {
      * they are flipbooks creating the illusion of animation but in reality
      * they are just drawing the entire screen over and over.
      */
-    function render() {
+
+    function renderMain() {
         /* This array holds the relative URL to the image used
          * for that particular row of the game level.
          */
@@ -151,16 +193,15 @@ var Engine = (function(global) {
                 'images/grass-block.png',   // Row 1 of 2 of grass
                 'images/grass-block.png'    // Row 2 of 2 of grass
             ],
-            numRows = 6,
-            numCols = 5,
-            row, col;
+                numRows = 6,
+                numCols = 5;
 
         /* Loop through the number of rows and columns we've defined above
          * and, using the rowImages array, draw the correct image for that
          * portion of the "grid"
          */
-        for (row = 0; row < numRows; row++) {
-            for (col = 0; col < numCols; col++) {
+        for (var row = 0; row < numRows; row++) {
+            for (var col = 0; col < numCols; col++) {
                 /* The drawImage function of the canvas' context element
                  * requires 3 parameters: the image to draw, the x coordinate
                  * to start drawing and the y coordinate to start drawing.
@@ -172,48 +213,31 @@ var Engine = (function(global) {
             }
         };
 
-        ctx.drawImage(Resources.get('images/Heart.png'), 403, 12, width = 101, height = 145);
-
-        ctx.font = "30px Consolas";
-        ctx.textAlign = "center";
-        ctx.fillStyle = "white";
-        ctx.fillText(player.score,454.5,95);
-
+        if(player.lifes >= 0) {
+            ctx.drawImage(Resources.get('images/Heart.png'), 403, 12, width = 101, height = 145);
+            ctx.font = "30px Consolas";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "white";
+            ctx.fillText(player.score,50.5,112);
+            ctx.fillText(player.lifes,454.5,95);
+            ctx.font = "25px Consolas";
+            ctx.fillText('Score:', 50, 78);
+        };
         renderEntities();
         renderText ();
     }
 
-    /* This function is called by the render function and is called on each game
-     * tick. Its purpose is to then call the render functions you have defined
-     * on your enemy and player entities within app.js
+    /* This function is called by the renderMain function and is called on each game
+     * tick to render enemy and player (defined within app.js).
      */
     function renderEntities() {
-        /* Loop through all of the objects within the allEnemies array and call
-         * the render function you have defined.
-         */
         allEnemies.forEach(function(enemy) {
             enemy.render();
         });
-
         player.render();
     }
 
-/*    
-	function reset() {
-		canvas.addEventListener('click',
-			function(event) {
-	//			var x = event.pageX - offLeft,
-	//				y = event.pageY - offTop;
-	//			if (rectLose.isPointInside(x, y)) {
-					alert('clicked an element');
-	//				}
-			},
-		false);
-    }
-*/
-    /* Go ahead and load all of the images we know we're going to need to
-     * draw our game level. Then set init as the callback method, so that when
-     * all of these images are properly loaded our game will start.
+     /* all of these images are properly loaded our game will start.
      */
     Resources.load([
         'images/stone-block.png',
@@ -221,7 +245,13 @@ var Engine = (function(global) {
         'images/grass-block.png',
         'images/enemy-bug.png',
         'images/char-boy.png',
-        'images/Heart.png'
+        'images/char-cat-girl.png',
+        'images/char-horn-girl.png',
+        'images/char-pink-girl.png',
+        'images/char-princess-girl.png',
+        'images/Heart.png',
+        'images/Star.png',
+        'images/Selector.png'
     ]);
     Resources.onReady(init);
 

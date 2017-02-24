@@ -1,43 +1,43 @@
 var Rect = (function() {
 
-		function rect(maintext) {
-		this.fill = "rgba(225,225,225,0.8)";
-		this.x = 0;
-		this.y = 210;
-		this.width = 1000;
-		this.height = 180;
-		this.align = "center";
-		this.textcolor = "black";
-		this.mainfont = "60px Consolas";
-		this.maintext = maintext;
-		this.maintextx = 260;
-		this.maintexty = 300;
-		this.secondfont = "30px Consolas";
-		this.secondtext = 'Press here to resume';
-		this.secondtextx = 260;
-		this.secondtexty = 340;
-	};
+function rect(maintext) {
+    this.fill = "rgba(225,225,225,0.8)";
+    this.x = 0;
+    this.y = 210;
+    this.width = 1000;
+    this.height = 180;
+    this.align = "center";
+    this.textcolor = "black";
+    this.mainfont = "60px Consolas";
+    this.maintext = maintext;
+    this.maintextx = 260;
+    this.maintexty = 300;
+    this.secondfont = "30px Consolas";
+    this.secondtext = 'Press here to continue';
+    this.secondtextx = 260;
+    this.secondtexty = 340;
+};
 
-	rect.prototype.draw = function() {
-		ctx.fillStyle = this.fill;
-		ctx.fillRect(this.x, this.y, this.width, this.height);
-		ctx.font = this.mainfont;
-		ctx.textAlign = this.align;
-		ctx.fillStyle = this.textcolor;
-		ctx.fillText(this.maintext, this.maintextx, this.maintexty);
-		ctx.font = this.secondfont;
-		ctx.fillText(this.secondtext, this.secondtextx, this.secondtexty)
-	}
+rect.prototype.draw = function() {
+    ctx.fillStyle = this.fill;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    ctx.font = this.mainfont;
+    ctx.textAlign = this.align;
+    ctx.fillStyle = this.textcolor;
+    ctx.fillText(this.maintext, this.maintextx, this.maintexty);
+    ctx.font = this.secondfont;
+    ctx.fillText(this.secondtext, this.secondtextx, this.secondtexty)
+}
 
-	rect.prototype.isPointInside = function (x, y) {
-		return (x >= this.x && 
-				x <= this.x + this.width && 
-				y >= this.y && 
-				y <= this.y + this.height
-		);
-	};
+rect.prototype.isPointInside = function (x, y) {
+    return (x >= this.x && 
+            x <= this.x + this.width &&
+            y >= this.y && 
+            y <= this.y + this.height
+    );
+};
 
-	return rect;
+return rect;
 })();
 
 
@@ -49,13 +49,13 @@ var rects = [];
 rects.push(rectWin);
 rects.push(rectLose);
 
+var character;
+var enterPressed = 0;
+var changeSlide;
+var allEnemies, player;
+
 // Enemies our player must avoid
 var Enemy = function(loc) {
-    // Variables applied to each of our instances go here,
-    // we've provided one for you to get started
-
-    // The image/sprite for our enemies, this uses
-    // a helper we've provided to easily load images
     this.sprite = 'images/enemy-bug.png';
     this.y = Math.ceil(Math.random()*3)*83;
     this.x = -Math.random()*500;
@@ -81,17 +81,65 @@ Enemy.prototype.render = function() {
     ctx.drawImage(Resources.get(this.sprite), this.x, this.y-83/4);
 };
 
-// Now write your own player class
-// This class requires an update(), render() and
-// a handleInput() method.
+
+// Draw selector on the starter screen
+var Selector = function () {
+    this.select = 'images/Selector.png';
+    this.x = 0;
+    this.y = 83 * 3.68;
+}
+
+Selector.prototype.update = function(dt) {
+    this.x = this.x;
+    this.y = this.y;
+};
+
+Selector.prototype.render = function() {
+    ctx.drawImage(Resources.get(this.select), this.x, this.y);
+};
+
+Selector.prototype.handleInput = function(key) {
+    if (key == 'right') {
+        if (this.x < 101 * 4) {
+            this.x = this.x + 101 
+        } else {this.x = 0};
+    };
+
+    if (key == 'left') {
+        if (this.x > 0) {
+            this.x = this.x - 101
+        } else {this.x = 101 * 4};
+    };
+
+    if (key == 'enter') {
+        enterPressed ++;
+        character = [
+         'images/char-cat-girl.png',
+         'images/char-horn-girl.png',
+         'images/char-boy.png',
+         'images/char-pink-girl.png',
+         'images/char-princess-girl.png'
+        ] [this.x / 101];
+        player = new Player();
+        e1 = new Enemy();
+        e2 = new Enemy();
+        e3 = new Enemy();
+        e4 = new Enemy();
+        e5 = new Enemy();
+        e6 = new Enemy();
+        allEnemies = [e1,e2,e3,e4,e5,e6];
+        changeSlide();
+   }
+};
 
 var Player = function() {
-    this.sprite = 'images/char-boy.png';
+    this.sprite = character;
     this.y = 83*5;
     this.ytime = 100;
     this.x = 101*2;
     this.xtime = 100;
     this.score = 0;
+    this.lifes = 3;
 }
 
 Player.prototype.update = function(dt) {
@@ -104,7 +152,7 @@ Player.prototype.render = function() {
 };
 
 Player.prototype.handleInput = function(key) {
-    if (this.score < 50  && this.score > -20) {
+    if (this.score < 50  && this.lifes >= 0 && enterPressed > 0) {
         if (key == 'up') {
             if (this.y > 83) {
                 this.y = (this.y - 83) 
@@ -134,32 +182,21 @@ Player.prototype.handleInput = function(key) {
     };
 };
 
-// Now instantiate your objects.
-// Place all enemy objects in an array called allEnemies
-// Place the player object in a variable called player
 
-e1 = new Enemy();
-e2 = new Enemy();
-e3 = new Enemy();
-e4 = new Enemy();
-e5 = new Enemy();
-e6 = new Enemy();
+// This listens for key presses and sends the keys to the handleInput() method 
 
-var allEnemies = [e1,e2,e3,e4,e5,e6];
-
-player = new Player();
-
-// This listens for key presses and sends the keys to your
-// Player.handleInput() method. You don't need to modify this.
 
 document.addEventListener('keyup', function(e) {
     var allowedKeys = {
         37: 'left',
         38: 'up',
         39: 'right',
-        40: 'down'
+        40: 'down',
+        13: 'enter'
     };
-
-    player.handleInput(allowedKeys[e.keyCode]);
+    if(enterPressed > 0) {
+        player.handleInput(allowedKeys[e.keyCode]);
+    }
+    selector.handleInput(allowedKeys[e.keyCode]);
 });
 
